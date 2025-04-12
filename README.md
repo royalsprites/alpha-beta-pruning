@@ -5,5 +5,5 @@ This project demonstrates the use of the Alpha-Beta Pruning optimization techniq
 
 ## Features
 - Visual checkers game board
-- AI vs Human or AI vs AI
+- AI vs Human
 - Alpha-Beta pruning with visual explanation
