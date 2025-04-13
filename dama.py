@@ -43,17 +43,16 @@ class Board:
 
     def get_valid_moves(self, color, start=None, is_capture=False):
         moves = []
-        capture_moves = []
         direction = -1 if color == "white" else 1
         opponent = "black" if color == "white" else "white"
 
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
-                if start and (row, col) != start:
+                if start and (row, col) != start:  # If a start position is specified, skip other pieces
                     continue
                 piece = self.grid[row][col]
                 if piece and piece.color == color:
-                    # Capture moves
+                    # Capture moves (jump over opponent)
                     for dx in [-2, 2]:
                         new_row = row + 2 * direction
                         new_col = col + dx
@@ -62,16 +61,16 @@ class Board:
                         if (0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE and
                             self.grid[mid_row][mid_col] and self.grid[mid_row][mid_col].color == opponent and
                             not self.grid[new_row][new_col]):
-                            capture_moves.append(((row, col), (new_row, new_col)))
+                            moves.append(((row, col), (new_row, new_col)))
 
-                            # Recursive multi-capture
+                            # Check for additional captures recursively
                             temp_board = self.clone()
                             temp_board.move_piece((row, col), (new_row, new_col))
                             additional_moves = temp_board.get_valid_moves(color, start=(new_row, new_col), is_capture=True)
                             for add_move in additional_moves:
-                                capture_moves.append(((row, col), *add_move[1:]))
+                                moves.append(((row, col), *add_move[1:]))
 
-                    # Normal moves (only if not in a capture chain and no captures)
+                    # Normal moves (only if not in a capture chain)
                     if not is_capture:
                         for dx in [-1, 1]:
                             new_row = row + direction
@@ -79,9 +78,7 @@ class Board:
                             if 0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE:
                                 if not self.grid[new_row][new_col]:
                                     moves.append(((row, col), (new_row, new_col)))
-
-        return capture_moves if capture_moves else moves
-
+        return moves
 
     def move_piece(self, start, end):
         piece = self.grid[start[0]][start[1]]
@@ -173,12 +170,10 @@ class Game:
             move = (self.selected_piece, (row, col))
             if move in self.board.get_valid_moves(self.human_color):
                 self.board.move_piece(*move)
-                self.selected_piece = (row, col)  # Allow multi-capture
-                if not any(abs(end[0] - row) == 2 for _, end in self.board.get_valid_moves(self.human_color, start=self.selected_piece)):
-                    self.selected_piece = None
-                    self.current_turn = self.ai_color
-                    self.window.after(1000, self.play_ai_turn)
+                self.selected_piece = None  # Turn always ends
+                self.current_turn = self.ai_color
                 self.draw_board()
+                self.window.after(1000, self.play_ai_turn)
             else:
                 self.selected_piece = None
                 self.draw_board()
@@ -188,7 +183,7 @@ class Game:
             print("Game Over")
             return
 
-        move, _ = self.alpha_beta(self.board, 3, -float('inf'), float('inf'), self.ai_color == "black")
+        move, _ = self.alpha_beta(self.board, 4, -float('inf'), float('inf'), self.ai_color == "black")
         if move:
             self.board.move_piece(move[0], move[1])
         self.current_turn = self.human_color
@@ -204,7 +199,7 @@ class Game:
             max_eval = -float('inf')
             for move in board.get_valid_moves(color):
                 new_board = board.clone()
-                new_board.move_piece(*move)
+                new_board.move_piece(move[0], move[1])
                 _, eval = self.alpha_beta(new_board, depth - 1, alpha, beta, False)
                 if eval > max_eval:
                     max_eval = eval
@@ -217,7 +212,7 @@ class Game:
             min_eval = float('inf')
             for move in board.get_valid_moves(color):
                 new_board = board.clone()
-                new_board.move_piece(*move)
+                new_board.move_piece(move[0], move[1])
                 _, eval = self.alpha_beta(new_board, depth - 1, alpha, beta, True)
                 if eval < min_eval:
                     min_eval = eval
