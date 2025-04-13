@@ -43,16 +43,17 @@ class Board:
 
     def get_valid_moves(self, color, start=None, is_capture=False):
         moves = []
+        capture_moves = []
         direction = -1 if color == "white" else 1
         opponent = "black" if color == "white" else "white"
 
         for row in range(BOARD_SIZE):
             for col in range(BOARD_SIZE):
-                if start and (row, col) != start:  # If a start position is specified, skip other pieces
+                if start and (row, col) != start:
                     continue
                 piece = self.grid[row][col]
                 if piece and piece.color == color:
-                    # Capture moves (jump over opponent)
+                    # Capture moves
                     for dx in [-2, 2]:
                         new_row = row + 2 * direction
                         new_col = col + dx
@@ -61,16 +62,16 @@ class Board:
                         if (0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE and
                             self.grid[mid_row][mid_col] and self.grid[mid_row][mid_col].color == opponent and
                             not self.grid[new_row][new_col]):
-                            moves.append(((row, col), (new_row, new_col)))
+                            capture_moves.append(((row, col), (new_row, new_col)))
 
-                            # Check for additional captures recursively
+                            # Recursive multi-capture
                             temp_board = self.clone()
                             temp_board.move_piece((row, col), (new_row, new_col))
                             additional_moves = temp_board.get_valid_moves(color, start=(new_row, new_col), is_capture=True)
                             for add_move in additional_moves:
-                                moves.append(((row, col), *add_move[1:]))
+                                capture_moves.append(((row, col), *add_move[1:]))
 
-                    # Normal moves (only if not in a capture chain)
+                    # Normal moves (only if not in a capture chain and no captures)
                     if not is_capture:
                         for dx in [-1, 1]:
                             new_row = row + direction
@@ -78,7 +79,9 @@ class Board:
                             if 0 <= new_row < BOARD_SIZE and 0 <= new_col < BOARD_SIZE:
                                 if not self.grid[new_row][new_col]:
                                     moves.append(((row, col), (new_row, new_col)))
-        return moves
+
+        return capture_moves if capture_moves else moves
+
 
     def move_piece(self, start, end):
         piece = self.grid[start[0]][start[1]]
