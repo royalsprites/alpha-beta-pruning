@@ -101,7 +101,9 @@ class Board:
         return score
 
     def is_game_over(self):
-        return not self.get_valid_moves("white") or not self.get_valid_moves("black")
+        white_moves = self.get_valid_moves("white")
+        black_moves = self.get_valid_moves("black")
+        return not white_moves or not black_moves
 
     def clone(self):
         return copy.deepcopy(self)
